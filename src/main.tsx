@@ -8,8 +8,8 @@ import { Analytics } from "@vercel/analytics/react"
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Toaster />
-    <RouterProvider router={router} />
-    <Analytics />
+      <Toaster />
+      <RouterProvider router={router} />
+      <Analytics />
   </StrictMode>,
 )

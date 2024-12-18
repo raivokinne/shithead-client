@@ -7,6 +7,7 @@ import { loginSchema } from "@/schemas";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Loader2, LogIn } from "lucide-react";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
 import { AuthHeader } from "@/components/auth/auth-header";
@@ -16,7 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 export default function Login() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, googleLogin, githubLogin, isLoading } = useAuth();
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -30,7 +31,7 @@ export default function Login() {
     try {
       await login({
         email: values.email,
-        password: values.password
+        password: values.password,
       });
 
       toast({
@@ -50,6 +51,28 @@ export default function Login() {
     }
   }
 
+  const handleOAuthLogin = async (provider: "google" | "github") => {
+    try {
+      const loginMethod = provider === "google" ? googleLogin : githubLogin;
+      const user = await loginMethod();
+
+      toast({
+        title: `Welcome back, ${user.displayName || "User"}!`,
+        description: `Successfully signed in with ${provider === "google" ? "Google" : "GitHub"}.`,
+        duration: 2000,
+      });
+
+      navigate("/");
+    } catch {
+      toast({
+        variant: "destructive",
+        title: `${provider === "google" ? "Google" : "GitHub"} login failed`,
+        description: "Something went wrong. Please try again.",
+        duration: 2000,
+      });
+    }
+  };
+
   return (
     <AuthFormWrapper>
       <AuthHeader
@@ -62,6 +85,26 @@ export default function Login() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-1000"
         >
+          <div className="space-y-2">
+            <Button
+              type="button"
+              disabled={isLoading}
+              className="w-full bg-white text-black hover:bg-gray-100"
+              onClick={() => handleOAuthLogin("google")}
+            >
+              <FaGoogle className="mr-2 h-4 w-4" />
+              Log in with Google
+            </Button>
+            <Button
+              type="button"
+              disabled={isLoading}
+              className="w-full bg-gray-800 text-white hover:bg-gray-900"
+              onClick={() => handleOAuthLogin("github")}
+            >
+              <FaGithub className="mr-2 h-4 w-4" />
+              Log in with GitHub
+            </Button>
+          </div>
           <div className="space-y-4">
             <AuthFormField
               form={form}
@@ -111,3 +154,4 @@ export default function Login() {
     </AuthFormWrapper>
   );
 }
+

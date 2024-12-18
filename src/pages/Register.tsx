@@ -12,11 +12,12 @@ import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
 import { AuthHeader } from "@/components/auth/auth-header";
 import { AuthFormField } from "@/components/auth/auth-form-field";
 import { useAuth } from "@/hooks/use-auth";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 
 export default function Register() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, googleLogin, githubLogin } = useAuth();
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -53,6 +54,27 @@ export default function Register() {
       });
     }
   }
+  const handleOAuthLogin = async (provider: "google" | "github") => {
+    try {
+      const loginMethod = provider === "google" ? googleLogin : githubLogin;
+      const user = await loginMethod();
+
+      toast({
+        title: `Welcome back, ${user.displayName || "User"}!`,
+        description: `Successfully signed in with ${provider === "google" ? "Google" : "GitHub"}.`,
+        duration: 2000,
+      });
+
+      navigate("/");
+    } catch {
+      toast({
+        variant: "destructive",
+        title: `${provider === "google" ? "Google" : "GitHub"} login failed`,
+        description: "Something went wrong. Please try again.",
+        duration: 2000,
+      });
+    }
+  };
 
   return (
     <AuthFormWrapper>
@@ -66,6 +88,26 @@ export default function Register() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-1000"
         >
+          <div className="space-y-2">
+            <Button
+              type="button"
+              disabled={isLoading}
+              className="w-full bg-white text-black hover:bg-gray-100"
+              onClick={() => handleOAuthLogin("google")}
+            >
+              <FaGoogle className="mr-2 h-4 w-4" />
+              Sign up with Google
+            </Button>
+            <Button
+              type="button"
+              disabled={isLoading}
+              className="w-full bg-gray-800 text-white hover:bg-gray-900"
+              onClick={() => handleOAuthLogin("github")}
+            >
+              <FaGithub className="mr-2 h-4 w-4" />
+              Sign up with GitHub
+            </Button>
+          </div>
           <div className="space-y-4">
             <AuthFormField
               form={form}

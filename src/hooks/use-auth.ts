@@ -1,9 +1,18 @@
-import { useState, useCallback } from 'react';
-import { User } from '@/types';
-import { instance } from '@/lib/axios';
+import { useState, useEffect, useCallback } from "react";
+import { auth } from "@/lib/firebase";
+import {
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
+import { instance } from "@/lib/axios";
 
 interface AuthState {
-  user: User | null;
+  user: any;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -23,116 +32,187 @@ interface RegisterCredentials extends LoginCredentials {
 export const useAuth = () => {
   const [state, setState] = useState<AuthState>({
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
-    isLoading: false,
-    error: null
+    token: localStorage.getItem("token"),
+    isAuthenticated: !!localStorage.getItem("token"),
+    isLoading: true,
+    error: null,
   });
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    try {
-      const response = await instance.post('/login', credentials);
-
-      if (response.data.success) {
-        const token = response.data.token;
-
-        const userResponse = await instance.get('/user', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        localStorage.setItem('token', token);
-
-        setState({
-          user: userResponse.data,
-          token,
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setState((prev) => ({
+          ...prev,
+          user: firebaseUser,
           isAuthenticated: true,
           isLoading: false,
-          error: null
-        });
-
-        return userResponse.data;
-      } else {
-        throw new Error(response.data.message || 'Login failed');
+        }));
+      } else if (!state.token) {
+        setState((prev) => ({
+          ...prev,
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        }));
       }
+    });
+
+    return () => unsubscribe();
+  }, [state.token]);
+
+  const googleLogin = useCallback(async () => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    const provider = new GoogleAuthProvider();
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      setState({
+        user,
+        token: null,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+
+      return user;
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
-      setState(prev => ({
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || "Google login failed",
+      }));
+      throw new Error(error.message || "Google login failed");
+    }
+  }, []);
+
+  const githubLogin = useCallback(async () => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    const provider = new GithubAuthProvider();
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      setState({
+        user,
+        token: null,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+
+      return user;
+    } catch (error: any) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || "GitHub login failed",
+      }));
+      throw new Error(error.message || "GitHub login failed");
+    }
+  }, []);
+
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const response = await instance.post("/login", credentials);
+      const { token, user } = response.data;
+
+      localStorage.setItem("token", token);
+
+      setState({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+
+      return user;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Custom login failed";
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: errorMessage,
-        isAuthenticated: false
       }));
-      throw error;
+      throw new Error(errorMessage);
     }
   }, []);
 
   const register = useCallback(async (credentials: RegisterCredentials) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await instance.post('/register', credentials);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        credentials.email,
+        credentials.password
+      );
 
-      if (response.data.success) {
-        const token = response.data.token;
+      await updateProfile(userCredential.user, { displayName: credentials.name });
 
-        const userResponse = await instance.get('/user', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+      setState({
+        user: userCredential.user,
+        token: null,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
 
-        localStorage.setItem('token', token);
-
-        setState({
-          user: userResponse.data,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
-
-        return userResponse.data;
-      } else {
-        throw new Error('Registration failed');
-      }
+      return userCredential.user;
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
-      setState(prev => ({
+      const errorMessage = error.message || "Registration failed";
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: errorMessage,
-        isAuthenticated: false
       }));
-      throw error;
+      throw new Error(errorMessage);
     }
   }, []);
 
   const logout = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      await instance.post('/logout');
+      if (state.token) {
+        await instance.post("/logout");
+        localStorage.removeItem("token");
+      } else {
+        await signOut(auth);
+      }
 
-      localStorage.removeItem('token');
       setState({
         user: null,
         token: null,
         isAuthenticated: false,
         isLoading: false,
-        error: null
+        error: null,
       });
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Logout failed';
-      setState(prev => ({
+      const errorMessage = error.message || "Logout failed";
+      setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: errorMessage
+        error: errorMessage,
       }));
-      throw error;
+      throw new Error(errorMessage);
     }
+  }, [state.token]);
+
+  const clearError = useCallback(() => {
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   return {
     ...state,
     login,
     register,
-    logout
+    logout,
+    clearError,
+    googleLogin,
+    githubLogin,
   };
 };
+
