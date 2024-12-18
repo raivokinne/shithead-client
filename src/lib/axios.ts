@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const instance = axios.create({
-  baseURL: "http://10.13.54.132:8000/api",
+  baseURL: "https://shithead-api.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json"
@@ -21,7 +21,7 @@ export const getCurrentUser = async () => {
 
 export const getCsrfToken = async () => {
   try {
-    await fetch("http://10.13.54.132:8000/sanctum/csrf-cookie", {
+    await fetch("https://shithead-api.onrender.com/sanctum/csrf-cookie", {
       credentials: "include"
     });
   } catch (error) {
