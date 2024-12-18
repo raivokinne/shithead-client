@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "NODE_ENV=development vite",
+    "build": "NODE_ENV=production tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -26,6 +26,7 @@
     "@vercel/analytics": "^1.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
     "firebase": "^11.1.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
