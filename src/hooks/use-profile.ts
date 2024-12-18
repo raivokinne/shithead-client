@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { instance, getCurrentUser, getCsrfToken } from '@/lib/axios';
+import { instance, getCsrfToken } from '@/lib/axios';
 import { User } from '@/types';
+import { useAuth } from './use-auth';
 
 export function useProfile() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User>({} as User);
+  const { user } = useAuth();
   const [profileData, setProfileData] = useState<User>({
     id: 0,
     name: '',
@@ -14,29 +15,6 @@ export function useProfile() {
   } as User);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-
-        const response = await instance.get(`/profile/${currentUser.id}/show`);
-        setProfileData(response.data);
-      } catch (err) {
-        setError('Failed to fetch profile');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const initializeProfile = async () => {
-      await getCsrfToken();
-      await fetchUserProfile();
-    };
-
-    initializeProfile();
-  }, []);
 
   const updateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
