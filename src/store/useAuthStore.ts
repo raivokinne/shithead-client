@@ -8,7 +8,7 @@ import {
 } from "firebase/auth";
 import { instance } from "@/lib/axios";
 import {
-    AuthState,
+  AuthState,
   LoginCredentials,
   RegisterCredentials,
   User,
@@ -17,17 +17,18 @@ import {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: {} as User,
   token: localStorage.getItem("token"),
-  isAuthenticated: !!localStorage.getItem("token"),
-  isLoading: false,
+  isAuthenticated: false,
+  isLoading: true,
   error: null,
 
   login: async (credentials: LoginCredentials) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await instance.post("/login", credentials);
+      const response = await instance.post("/auth/login", credentials);
       if (response.data.success) {
         const token = response.data.token;
         localStorage.setItem("token", token);
+
         const userResponse = await instance.get("/user");
         set({
           user: userResponse.data,
@@ -42,7 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.message || error.message || "Login failed";
+        error.response?.data?.error || error.message || "Login failed";
       set({
         isLoading: false,
         error: errorMessage,
@@ -55,20 +56,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (credentials: RegisterCredentials) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await instance.post("/register", credentials);
+      const response = await instance.post("/auth/register", credentials);
       if (response.data.success) {
+        const token = response.data.token;
+        localStorage.setItem("token", token);
+
+        const userResponse = await instance.get("/user");
         set({
+          user: userResponse.data,
+          token,
           isAuthenticated: true,
           isLoading: false,
           error: null,
         });
-
+        return userResponse.data;
       } else {
-        throw new Error("Registration failed");
+        throw new Error(response.data.message || "Registration failed");
       }
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.message || error.message || "Registration failed";
+        error.response?.data?.error || error.message || "Registration failed";
       set({
         isLoading: false,
         error: errorMessage,
@@ -84,21 +91,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const result = await signInWithPopup(auth, provider);
-      const user: any = result.user;
-      set({
-        user,
-        token: null,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
+      const firebaseUser = result.user;
+
+      const idToken = await firebaseUser.getIdToken();
+      const response = await instance.post("/auth/firebase", {
+        token: idToken,
+        provider: 'google'
       });
-      return user;
+
+      if (response.data.success) {
+        const token = response.data.token;
+        localStorage.setItem("token", token);
+
+        const userResponse = await instance.get("/user");
+        set({
+          user: userResponse.data,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        return userResponse.data;
+      } else {
+        throw new Error("Failed to authenticate with backend");
+      }
     } catch (error: any) {
       set({
         isLoading: false,
         error: error.message || "Google login failed",
+        isAuthenticated: false,
       });
-      throw new Error(error.message || "Google login failed");
+      throw error;
     }
   },
 
@@ -108,31 +131,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const result = await signInWithPopup(auth, provider);
-      const user: any = result.user;
-      set({
-        user,
-        token: null,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
+      const firebaseUser = result.user;
+
+      const idToken = await firebaseUser.getIdToken();
+      const response = await instance.post("/auth/firebase", {
+        token: idToken,
+        provider: 'github'
       });
-      return user;
+
+      if (response.data.success) {
+        const token = response.data.token;
+        localStorage.setItem("token", token);
+
+        const userResponse = await instance.get("/user");
+        set({
+          user: userResponse.data,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        return userResponse.data;
+      } else {
+        throw new Error("Failed to authenticate with backend");
+      }
     } catch (error: any) {
       set({
         isLoading: false,
         error: error.message || "GitHub login failed",
+        isAuthenticated: false,
       });
-      throw new Error(error.message || "GitHub login failed");
+      throw error;
     }
   },
 
   logout: async () => {
     set({ isLoading: true, error: null });
     try {
+      await instance.post("/auth/logout");
+
       const { token } = get();
       if (token) {
         localStorage.removeItem("token");
-      } else {
+      }
+
+      if (auth.currentUser) {
         await signOut(auth);
       }
 
@@ -144,29 +187,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
       });
     } catch (error: any) {
-      const errorMessage = error.message || "Logout failed";
       set({
         isLoading: false,
-        error: errorMessage,
+        error: error.message || "Logout failed",
       });
-      throw new Error(errorMessage);
+      throw error;
     }
   },
 
   clearError: () => set({ error: null }),
 }));
 
-if (typeof window !== 'undefined' && localStorage.getItem("token")) {
-  instance.get("/user").then((response) => {
-    useAuthStore.setState({
-      user: response.data,
-      isAuthenticated: true,
-      isLoading: false,
+if (typeof window !== 'undefined') {
+  instance.get("/user")
+    .then((response) => {
+      useAuthStore.setState({
+        user: response.data,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    })
+    .catch(() => {
+      localStorage.removeItem("token");
+      useAuthStore.setState({
+        user: {} as User,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
     });
-  }).catch(() => {
-    useAuthStore.setState({
-      isLoading: false,
-      error: "Failed to fetch user",
-    });
-  });
 }
