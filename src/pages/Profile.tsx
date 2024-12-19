@@ -1,25 +1,18 @@
-import { Loader2 } from 'lucide-react';
-import { ProfileHeader } from '@/components/profile/ProfileHeader';
-import { UserInfo } from '@/components/profile/UserInfo';
-import { ProfileForm } from '@/components/profile/forms/ProfileForm';
-import { PasswordForm } from '@/components/profile/forms/PasswordForm';
-import { DangerZone } from '@/components/profile/DangerZone';
-import { useProfile } from '@/hooks/use-profile';
-import { useProtectedRoute } from '@/hooks/use-protected-route';
+import { Loader2 } from "lucide-react";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { UserInfo } from "@/components/profile/UserInfo";
+import { ProfileForm } from "@/components/profile/forms/ProfileForm";
+import { PasswordForm } from "@/components/profile/forms/PasswordForm";
+import { DangerZone } from "@/components/profile/DangerZone";
+import { useProfile } from "@/hooks/use-profile";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function Profile() {
-  const { isLoading: authLoading } = useProtectedRoute();
+  const { user, isAuthenticated } = useAuthStore();
 
-  const {
-    user,
-    profileData,
-    loading,
-    updateProfile,
-    updatePassword,
-    deleteAccount
-  } = useProfile();
+  const { updateProfile, updatePassword, deleteAccount } = useProfile();
 
-  if (authLoading || loading) {
+  if (!isAuthenticated) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-black" />
@@ -50,10 +43,7 @@ export default function Profile() {
           </div>
 
           <div className="space-y-6">
-            <ProfileForm
-              profileData={profileData}
-              onSubmit={updateProfile}
-            />
+            <ProfileForm profileData={user} onSubmit={updateProfile} />
             <PasswordForm onSubmit={updatePassword} />
           </div>
         </div>

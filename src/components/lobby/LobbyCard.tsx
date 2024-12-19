@@ -67,7 +67,6 @@ export function LobbyCard({ lobby, onJoin }: LobbyCardProps) {
           <span className="flex items-center gap-2">
             <Crown className="h-5 w-5 text-yellow-500" />
             {lobby.name}
-            <span>#{lobby.id}</span>
           </span>
           <Badge variant={lobby.status === 'waiting' ? 'secondary' : 'outline'}>
             {lobby.status}

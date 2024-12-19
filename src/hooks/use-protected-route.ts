@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './use-auth';
 import { useToast } from './use-toast';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export function useProtectedRoute() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuthStore();
   const { toast } = useToast();
 
   useEffect(() => {

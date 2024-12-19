@@ -10,7 +10,7 @@ export function useNotifications() {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const response = await instance.get('/notifications/unread');
+      const response = await instance.get('/notifications');
       setNotifications(response.data);
       setUnreadCount(response.data.length);
     } catch (error) {

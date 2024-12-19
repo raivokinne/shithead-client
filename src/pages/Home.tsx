@@ -1,11 +1,11 @@
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
-import { LogIn, LogOut, Play, Trophy, UserPlus2, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/use-auth';
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
+import { LogIn, LogOut, Play, Trophy, UserPlus2, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -14,36 +14,38 @@ const cardVariants = {
     y: 0,
     transition: {
       delayChildren: 0.3,
-      staggerChildren: 0.2
-    }
-  }
+      staggerChildren: 0.2,
+    },
+  },
 };
 
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
-    opacity: 1
-  }
+    opacity: 1,
+  },
 };
 
 export default function Home() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated } = useAuthStore();
+
+  console.log(user);
 
   const handleLogout = async () => {
     try {
       await logout();
       toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-        duration: 2000
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+        duration: 2000,
       });
     } catch (error) {
       toast({
-        title: 'Logout Failed',
-        description: 'Please try again.',
-        variant: 'destructive',
-        duration: 2000
+        title: "Logout Failed",
+        description: "Please try again.",
+        variant: "destructive",
+        duration: 2000,
       });
     }
   };
@@ -83,7 +85,9 @@ export default function Home() {
             <CardTitle className="text-center text-2xl text-white flex items-center justify-center gap-2">
               <Trophy className="w-6 h-6 text-neutral-300" />
               <span className="font-light">
-                {user ? `Welcome, ${user.name}` : 'Welcome to Shithead'}
+                {user && isAuthenticated
+                  ? `Welcome, ${user.name || user.displayName}`
+                  : "Welcome to Shithead"}
               </span>
             </CardTitle>
           </CardHeader>
@@ -123,7 +127,9 @@ export default function Home() {
                     <Link to="/profile">
                       <Button
                         variant="outline"
-                        className={cn("w-full border-neutral-700 hover:bg-neutral-400 transition-all duration-300")}
+                        className={cn(
+                          "w-full border-neutral-700 hover:bg-neutral-400 transition-all duration-300"
+                        )}
                         size="lg"
                       >
                         <Users className="mr-2 h-4 w-4" /> Profile
@@ -172,4 +178,3 @@ export default function Home() {
     </div>
   );
 }
-

@@ -50,5 +50,5 @@ export const router = createBrowserRouter([
   {
     path: "/game/:id/show",
     element: <GameShow />,
-  }
+  },
 ]);

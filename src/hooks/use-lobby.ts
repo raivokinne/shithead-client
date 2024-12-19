@@ -15,6 +15,7 @@ export function useLobby(id: string | undefined) {
     try {
       const response = await instance.get(`/lobbies/${id}/show`);
       setLobby(response.data);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast({
         title: "Error",
@@ -28,7 +29,7 @@ export function useLobby(id: string | undefined) {
 
   useEffect(() => {
     fetchLobbyDetails();
-    const interval = setInterval(fetchLobbyDetails, 1000);
+    const interval = setInterval(fetchLobbyDetails, 10000);
     return () => clearInterval(interval);
   }, [fetchLobbyDetails]);
 
@@ -48,6 +49,7 @@ export function useLobby(id: string | undefined) {
         description: "Failed to join the lobby",
         variant: "destructive",
       });
+      console.error(error);
     } finally {
       setIsJoining(false);
     }
@@ -59,17 +61,20 @@ export function useLobby(id: string | undefined) {
     return () => clearInterval(interval);
   }, [fetchLobbyDetails]);
 
-  const updateParticipantStatus = useCallback((participantId: number, status: 'ready' | 'not_ready') => {
-    setLobby(currentLobby => {
-      if (!currentLobby) return null;
-      return {
-        ...currentLobby,
-        participants: currentLobby.participants.map(p =>
-          p.id === participantId ? { ...p, status } : p
-        )
-      };
-    });
-  }, []);
+  const updateParticipantStatus = useCallback(
+    (participantId: number, status: "ready" | "not_ready") => {
+      setLobby((currentLobby) => {
+        if (!currentLobby) return null;
+        return {
+          ...currentLobby,
+          participants: currentLobby.participants.map((p) =>
+            p.id === participantId ? { ...p, status } : p
+          ),
+        };
+      });
+    },
+    []
+  );
 
   const startGame = useCallback(async () => {
     try {
@@ -78,10 +83,10 @@ export function useLobby(id: string | undefined) {
         navigate(`/games/${id}`);
       } else {
         toast({
-          title: 'Error',
-          description: 'Failed to start the game',
-          variant: 'destructive',
-        })
+          title: "Error",
+          description: "Failed to start the game",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -89,8 +94,9 @@ export function useLobby(id: string | undefined) {
         description: "Failed to start the game",
         variant: "destructive",
       });
+      console.error(error);
     }
-  }, []);
+  }, [id, navigate]);
 
   const leaveLobby = useCallback(async () => {
     try {
@@ -99,31 +105,37 @@ export function useLobby(id: string | undefined) {
         title: "Success",
         description: "You've left the lobby",
       });
-      navigate('/lobbies');
-    } catch (error: any) {
+      navigate("/lobbies");
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to leave the lobby",
+        description: "Failed to leave the lobby",
         variant: "destructive",
       });
+      console.error(error);
     }
   }, [id, navigate]);
 
-  const inviteUserToLobby = async (lobbyId: string | undefined, userId: number) => {
+  const inviteUserToLobby = async (
+    lobbyId: string | undefined,
+    userId: number
+  ) => {
     setLoading(true);
     try {
-      const response = await instance.post(`/lobbies/${lobbyId}/invite`, { invited_user_id: userId });
+      const response = await instance.post(`/lobbies/${lobbyId}/invite`, {
+        invited_user_id: userId,
+      });
       if (response.status === 200) {
         setLobby(response.data);
       } else {
         toast({
-          title: 'Error',
-          description: 'Failed to invite user',
-          variant: 'destructive',
-        })
+          title: "Error",
+          description: "Failed to invite user",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error inviting user:', error);
+      console.error("Error inviting user:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -139,6 +151,6 @@ export function useLobby(id: string | undefined) {
     updateParticipantStatus,
     startGame,
     leaveLobby,
-    inviteUserToLobby
+    inviteUserToLobby,
   };
 }

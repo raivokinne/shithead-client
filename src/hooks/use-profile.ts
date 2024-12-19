@@ -1,18 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { instance, getCsrfToken } from '@/lib/axios';
-import { User } from '@/types';
-import { useAuth } from './use-auth';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { instance } from "@/lib/axios";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export function useProfile() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [profileData, setProfileData] = useState<User>({
-    id: 0,
-    name: '',
-    email: '',
-    avatar: null
-  } as User);
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,15 +15,13 @@ export function useProfile() {
       setLoading(true);
       const formData = new FormData(e.currentTarget);
 
-      await getCsrfToken();
-      await instance.put(`/profile/${user.id}/update`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      await instance.put(`/profile/${user?.uid}/update`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const response = await instance.get(`/profile/${user.id}/show`);
-      setProfileData(response.data);
+      await instance.get(`/profile/${user?.uid}/show`);
     } catch (err) {
-      setError('Profile update failed');
+      setError("Profile update failed");
     } finally {
       setLoading(false);
     }
@@ -41,10 +32,9 @@ export function useProfile() {
     try {
       setLoading(true);
       const formData = new FormData(e.currentTarget);
-      await getCsrfToken();
       await instance.put(`/profile/${user.id}/password`, formData);
     } catch (err) {
-      setError('Password update failed');
+      setError("Password update failed");
     } finally {
       setLoading(false);
     }
@@ -53,12 +43,11 @@ export function useProfile() {
   const deleteAccount = async () => {
     try {
       setLoading(true);
-      await getCsrfToken();
       await instance.delete(`/profile/${user.id}/delete`);
-      localStorage.removeItem('token');
-      navigate('/login');
+      localStorage.removeItem("token");
+      navigate("/login");
     } catch (err) {
-      setError('Account deletion failed');
+      setError("Account deletion failed");
     } finally {
       setLoading(false);
     }
@@ -66,11 +55,11 @@ export function useProfile() {
 
   return {
     user,
-    profileData,
+    profileData: user,
     loading,
     error,
     updateProfile,
     updatePassword,
-    deleteAccount
+    deleteAccount,
   };
 }

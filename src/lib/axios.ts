@@ -1,12 +1,12 @@
 import axios from "axios";
 
 export const instance = axios.create({
-  baseURL: "https://shithead-api.onrender.com/api",
+  baseURL: "http://localhost:7734/api",
   headers: {
     "Content-Type": "application/json",
-    "Accept": "application/json"
+    Accept: "application/json",
   },
-  withCredentials: true
+  withCredentials: true,
 });
 
 export const getCurrentUser = async () => {
@@ -19,35 +19,13 @@ export const getCurrentUser = async () => {
   }
 };
 
-export const getCsrfToken = async () => {
-  try {
-    await fetch("https://shithead-api.onrender.com/sanctum/csrf-cookie", {
-      credentials: "include"
-    });
-  } catch (error) {
-    console.error("Failed to get CSRF token", error);
-  }
-};
-
 instance.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
-
-export const isTokenExpired = (token: string) => {
-  try {
-    const decoded = JSON.parse(atob(token.split(".")[1]));
-    const exp = decoded.exp * 1000;
-    return Date.now() > exp;
-  } catch (error) {
-    return true;
-  }
-};
