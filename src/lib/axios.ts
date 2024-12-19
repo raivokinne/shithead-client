@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const instance = axios.create({
-  baseURL: "http://localhost:7734/api",
+  baseURL: "https://shithead-api.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
