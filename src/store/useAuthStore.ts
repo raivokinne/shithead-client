@@ -24,7 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (credentials: LoginCredentials) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await instance.post("/auth/login", credentials);
+      const response = await instance.post("/login", credentials);
       if (response.data.success) {
         const token = response.data.token;
         localStorage.setItem("token", token);
@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (credentials: RegisterCredentials) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await instance.post("/auth/register", credentials);
+      const response = await instance.post("/register", credentials);
       if (response.data.success) {
         const token = response.data.token;
         localStorage.setItem("token", token);
@@ -94,7 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const firebaseUser = result.user;
 
       const idToken = await firebaseUser.getIdToken();
-      const response = await instance.post("/auth/firebase", {
+      const response = await instance.post("/firebase", {
         token: idToken,
         provider: 'google'
       });
@@ -134,7 +134,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const firebaseUser = result.user;
 
       const idToken = await firebaseUser.getIdToken();
-      const response = await instance.post("/auth/firebase", {
+      const response = await instance.post("/firebase", {
         token: idToken,
         provider: 'github'
       });
@@ -168,7 +168,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     set({ isLoading: true, error: null });
     try {
-      await instance.post("/auth/logout");
+      await instance.post("/logout");
 
       const { token } = get();
       if (token) {
