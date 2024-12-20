@@ -30,8 +30,6 @@ const itemVariants = {
 export default function Home() {
   const { user, logout, isAuthenticated } = useAuthStore();
 
-  console.log(user);
-
   const handleLogout = async () => {
     try {
       await logout();
