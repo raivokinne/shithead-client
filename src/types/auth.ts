@@ -2,10 +2,8 @@ import { ReactNode } from "react";
 import { User as FirebaseUser } from "firebase/auth";
 import { User as UserType } from "@/types";
 
-export type User = FirebaseUser & UserType;
-
 export interface AuthState {
-  user: User;
+  user: UserType & FirebaseUser;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;

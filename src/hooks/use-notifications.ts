@@ -3,6 +3,11 @@ import { instance } from '@/lib/axios';
 import { toast } from '@/hooks/use-toast';
 import { Notification } from '@/types';
 
+type AcceptRequest = {
+  invite_code: string,
+  lobby_id: string
+}
+
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +32,7 @@ export function useNotifications() {
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      await instance.post(`/notifications/${notificationId}/read`);
+      await instance.put(`/notifications/${notificationId}/read`);
       setNotifications(prev =>
         prev.map(n =>
           n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n
@@ -41,7 +46,7 @@ export function useNotifications() {
 
   const markAllAsRead = useCallback(async () => {
     try {
-      await instance.post('/notifications/mark-all-read');
+      await instance.put('/notifications/read-all');
       setNotifications(prev =>
         prev.map(n => ({ ...n, read_at: new Date().toISOString() }))
       );
@@ -60,6 +65,28 @@ export function useNotifications() {
     }
   }, []);
 
+  const accept = useCallback(async (data: AcceptRequest) => {
+    try {
+      const response = await instance.post('/lobbies/inivitation/accept', data)
+      if (response.data.succes) {
+        toast({
+          title: 'Success',
+          description: 'Lobby inivitation accepted',
+        });
+      }
+      toast({
+        title: 'Error',
+        description: 'Wrong invite code',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to accept lobby',
+        variant: 'destructive',
+      });
+    }
+  }, []);
+
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
@@ -70,6 +97,7 @@ export function useNotifications() {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    accept
   };
 }
 

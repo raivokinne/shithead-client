@@ -31,7 +31,7 @@ export function InviteDialog({ lobbyId, maxPlayers, currentPlayers }: InviteDial
           Invite Players
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Invite Players</DialogTitle>
           <DialogDescription>

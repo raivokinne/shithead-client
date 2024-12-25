@@ -31,7 +31,7 @@ export function UserSearch({ lobbyId, onSelect, selectedUsers }: UserSearchProps
     const searchUsers = async () => {
       setLoading(true);
       try {
-        const response = await instance.get(`/lobbies/${lobbyId}/search?query=${debouncedQuery}`);
+        const response = await instance.get(`/users/search?query=${debouncedQuery}`);
         setUsers(response.data.filter(
           (user: User) => !selectedUsers.some(selected => selected.id === user.id)
         ));

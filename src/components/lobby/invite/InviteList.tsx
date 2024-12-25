@@ -53,7 +53,7 @@ export function InviteList({ users, onRemove, lobbyId }: InviteListProps) {
         {users.map((user) => (
           <div
             key={user.id}
-            className="flex items-center justify-between rounded-lg border p-2"
+            className="flex items-center justify-between p-2"
           >
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">

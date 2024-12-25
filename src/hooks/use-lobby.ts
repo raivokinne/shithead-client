@@ -10,12 +10,12 @@ export function useLobby(id: string | undefined) {
   const [isJoining, setIsJoining] = useState(false);
   const navigate = useNavigate();
 
+
   const fetchLobbyDetails = useCallback(async () => {
     if (!id) return;
     try {
       const response = await instance.get(`/lobbies/${id}/show`);
       setLobby(response.data);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast({
         title: "Error",
@@ -29,9 +29,7 @@ export function useLobby(id: string | undefined) {
 
   useEffect(() => {
     fetchLobbyDetails();
-    const interval = setInterval(fetchLobbyDetails, 10000);
-    return () => clearInterval(interval);
-  }, [fetchLobbyDetails]);
+  }, []);
 
   const joinLobby = useCallback(async () => {
     if (!id || isJoining) return;
@@ -54,12 +52,6 @@ export function useLobby(id: string | undefined) {
       setIsJoining(false);
     }
   }, [id, isJoining, fetchLobbyDetails]);
-
-  useEffect(() => {
-    fetchLobbyDetails();
-    const interval = setInterval(fetchLobbyDetails, 50000);
-    return () => clearInterval(interval);
-  }, [fetchLobbyDetails]);
 
   const updateParticipantStatus = useCallback(
     (participantId: number, status: "ready" | "not_ready") => {

@@ -84,7 +84,7 @@ export default function Show() {
               </div>
               <ParticipantList
                 participants={lobby.participants}
-                lobbyId={id!}
+                owner={lobby.owner}
               />
             </div>
           </div>
