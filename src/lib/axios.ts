@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const instance = axios.create({
   // baseURL: "https://api.troika.id.lv",
-  baseURL: "http://localhost:8004",
+  baseURL: "http://localhost:7776",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

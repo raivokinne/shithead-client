@@ -38,7 +38,6 @@ export default function Home() {
         description: "You have been successfully logged out.",
         duration: 2000,
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast({
         title: "Logout Failed",
@@ -58,7 +57,6 @@ export default function Home() {
         transition={{ duration: 1.5 }}
         className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)]"
       />
-
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
