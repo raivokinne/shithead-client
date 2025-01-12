@@ -14,9 +14,6 @@ export default defineConfig(({ mode }) => {
 		server: {
 			port: 3000,
 			host: "0.0.0.0",
-			hmr: {
-				host: "0.0.0.0",
-			}
 		},
 		define: {
 			"import.meta.env.FIREBASE_API_KEY": JSON.stringify(env.FIREBASE_API_KEY),

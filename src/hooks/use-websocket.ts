@@ -8,6 +8,12 @@ interface GameWebSocketProps {
 	onGameUpdate?: (update: GameStateType) => void;
 }
 
+type Data = {
+	payload: {
+		[key: string]: any
+	}
+}
+
 export const useGameWebSocket = ({
 	gameId,
 	onGameUpdate,
@@ -15,6 +21,7 @@ export const useGameWebSocket = ({
 	const { toast } = useToast();
 	const navigate = useNavigate();
 	const wsRef = useRef<WebSocket | null>(null);
+	const [data, setData] = useState<Data>()
 	const [connectionStatus, setConnectionStatus] = useState<WebSocket['readyState']>(
 		WebSocket.CONNECTING
 	);
@@ -48,6 +55,16 @@ export const useGameWebSocket = ({
 						});
 						if (data.payload.redirect) {
 							navigate(data.payload.redirect);
+						}
+						break;
+					case 'lobby_ready':
+						if (data.payload.is_ready) {
+							const isReady = data.payload.is_ready
+							toast({
+								title: isReady ? '✋ No Longer Ready' : '👍 Ready to Play',
+								description: isReady ? 'You can make changes before the game starts' : 'Waiting for other players',
+							});
+							setData(data)
 						}
 						break;
 					case 'game_update':
@@ -96,10 +113,27 @@ export const useGameWebSocket = ({
 		}));
 	}, [gameId, toast]);
 
+	const readyUp = useCallback((lobbyId: string) => {
+		if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+			toast({
+				title: "Error",
+				description: "Not connected to game server",
+				variant: "destructive",
+			});
+			return;
+		}
+		wsRef.current.send(JSON.stringify({
+			type: 'lobby_ready',
+			payload: { lobbyId }
+		}));
+	}, [])
+
 
 	return {
+		data,
 		startGame,
 		connectionStatus,
+		readyUp
 	};
 };
 

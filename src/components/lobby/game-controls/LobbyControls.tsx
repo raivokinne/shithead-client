@@ -1,33 +1,21 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2, Copy, Share2 } from 'lucide-react';
-import { instance } from '@/lib/axios';
+import { Check, Copy, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import useGameWebSocket from '@/hooks/use-websocket';
 
-export default function LobbyControls({ lobbyId, isReady = false }: { lobbyId: string; isReady: boolean }) {
-	const [loading, setLoading] = useState(false);
+export default function LobbyControls({ lobbyId, gameId }: { lobbyId: string; gameId: string | undefined }) {
 	const [copying, setCopying] = useState(false);
 	const { toast } = useToast();
+	const { readyUp, data } = useGameWebSocket({
+		gameId,
+		onGameUpdate: (update) => {
+			console.log('Game update:', update);
+		},
+	});
 
-	const handleReadyUp = async () => {
-		setLoading(true);
-		try {
-			await instance.post(`/lobbies/${lobbyId}/ready`);
-			toast({
-				title: isReady ? '✋ No Longer Ready' : '👍 Ready to Play',
-				description: isReady ? 'You can make changes before the game starts' : 'Waiting for other players',
-			});
-		} catch (error) {
-			toast({
-				title: 'Failed to Update Status',
-				description: 'Please try again in a moment',
-				variant: 'destructive',
-			});
-		} finally {
-			setLoading(false);
-		}
-	};
+	console.log(data)
 
 	const shareOptions = [
 		{
@@ -58,20 +46,14 @@ export default function LobbyControls({ lobbyId, isReady = false }: { lobbyId: s
 	return (
 		<div className="space-y-4">
 			<Button
-				variant={isReady ? "default" : "outline"}
+				variant={data?.payload?.is_ready ? "default" : "outline"}
 				className={cn(
 					"w-full transition-all duration-300",
-					isReady && "bg-green-500 hover:bg-green-600"
+					data?.payload?.is_ready && "bg-green-500 hover:bg-green-600"
 				)}
-				onClick={handleReadyUp}
-				disabled={loading}
+				onClick={() => readyUp(lobbyId)}
 			>
-				{loading ? (
-					<Loader2 className="mr-2 h-5 w-5 animate-spin" />
-				) : (
-					<Check className={cn("mr-2 h-5 w-5", isReady ? "opacity-100" : "opacity-50")} />
-				)}
-				{isReady ? "Ready to Play" : "Click when Ready"}
+				{data?.payload?.is_ready ? "Ready to Play" : "Click when Ready"}
 			</Button>
 
 			<div className="grid grid-cols-2 gap-3">

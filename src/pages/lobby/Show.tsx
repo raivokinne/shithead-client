@@ -103,7 +103,7 @@ export default function Show() {
 								) : (
 									<LobbyControls
 										lobbyId={id!}
-										isReady={currentParticipant?.is_ready ?? false}
+										gameId={lobby?.current_game?.id}
 									/>
 								)}
 							</div>
