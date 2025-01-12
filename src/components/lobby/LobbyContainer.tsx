@@ -5,7 +5,7 @@ import { useLobbySearch } from '@/hooks/use-lobby-search';
 
 interface LobbyContainerProps {
 	lobbies: Lobby[];
-	onJoinLobby: (lobbyId: number, password: string, inviteCode?: string, privacyLevel?: string) => Promise<void>;
+	onJoinLobby: (lobbyId: number, password?: string, inviteCode?: string, privacyLevel?: string) => Promise<void>;
 	onRefresh: () => void;
 	onCreateNew: () => void;
 }
