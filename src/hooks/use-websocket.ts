@@ -27,7 +27,7 @@ export const useGameWebSocket = ({
 	);
 
 	useEffect(() => {
-		const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//localhost:8000/games/${gameId}`;
+		const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//api.troika.id.lv/games/${gameId}`;
 		const ws = new WebSocket(wsUrl);
 		wsRef.current = ws;
 
