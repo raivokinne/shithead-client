@@ -15,7 +15,7 @@ export function InvitePlayers({ lobbyId }: { lobbyId: string | undefined }) {
     setQuery(e.target.value);
   };
 
-  const handleInvite = async (userId: number) => {
+  const handleInvite = async (userId: string) => {
     try {
       await inviteUserToLobby(lobbyId, userId);
       toast({

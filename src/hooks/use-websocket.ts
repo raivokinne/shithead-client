@@ -41,7 +41,7 @@ export const useGameWebSocket = ({
   const { toast } = useToast();
   const navigate = useNavigate();
   const wsRef = useRef<WebSocket | null>(null);
-  const [_data, setData] = useState<GameData>();
+  const [data, setData] = useState<GameData>();
   const [connectionStatus, setConnectionStatus] = useState<WebSocket['readyState']>(
     WebSocket.CONNECTING
   );
@@ -214,7 +214,8 @@ export const useGameWebSocket = ({
     drawCard,
     wsRef,
 	 startGame,
-	 readyUp
+	 readyUp,
+	 data
   };
 };
 
