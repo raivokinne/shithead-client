@@ -116,7 +116,7 @@ export function useLobby(id: string | undefined) {
 
 	const inviteUserToLobby = async (
 		lobbyId: string | undefined,
-		userId: number
+		userId: string
 	) => {
 		setLoading(true);
 		try {

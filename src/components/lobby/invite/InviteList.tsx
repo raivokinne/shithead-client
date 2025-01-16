@@ -8,12 +8,12 @@ import { User as UserType } from '@/types';
 
 interface InviteListProps {
 	users: UserType[];
-	onRemove: (userId: number) => void;
+	onRemove: (userId: string) => void;
 	lobbyId: string;
 }
 
 export function InviteList({ users, onRemove, lobbyId }: InviteListProps) {
-	const [inviting, setInviting] = useState<number[]>([]);
+	const [inviting, setInviting] = useState<string[]>([]);
 	const { toast } = useToast();
 	const { inviteUserToLobby } = useLobby(lobbyId);
 
