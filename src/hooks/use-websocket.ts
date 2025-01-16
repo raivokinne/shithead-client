@@ -120,13 +120,13 @@ export const useGameWebSocket = ({
   useEffect(() => {
     if (!gameId) return;
 
-    const wsUrl = `${
-      window.location.protocol === 'https:'
-        ? `wss://api.troika.id.lv/games/${gameId}`
-        : `ws://10.13.59.2:8000/games/${gameId}`
-    }`;
+    // const wsUrl = `${
+    //   window.location.protocol === 'https:'
+    //     ? `wss://api.troika.id.lv/games/${gameId}`
+    //     : `ws://10.13.59.2:8000/games/${gameId}`
+    // }`;
 
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(`wss://api.troika.id.lv/games/${gameId}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
