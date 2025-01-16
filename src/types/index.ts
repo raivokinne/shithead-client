@@ -1,5 +1,5 @@
 export interface Participant {
-	id: number;
+	id: string;
 	name: string;
 	is_ready: boolean;
 	role: string;
@@ -80,7 +80,7 @@ export type Game = {
 };
 
 export type User = {
-	id: number;
+	id: string;
 	name: string;
 	email: string;
 	avatar: string | null;

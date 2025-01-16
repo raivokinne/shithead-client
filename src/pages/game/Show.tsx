@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useGameWebSocket } from '@/hooks/use-websocket';
 import { instance } from '@/lib/axios';
 import { Users, Crown, Signal } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Button } from '@/components/ui/button';
 
 interface CardType {
 	id: string;
@@ -22,6 +24,7 @@ interface Player {
 	avatar?: string;
 	card_count: number;
 	is_current: boolean;
+	user_id: string;
 }
 
 export interface GameStateType {
@@ -48,43 +51,69 @@ export default function Show() {
 	const [gameState, setGameState] = useState<GameStateType | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const isInitialLoadComplete = useRef(false);
-	const cardRef = useRef<HTMLDivElement | null>(null);
-	const playePileRef = useRef<HTMLDivElement | null>(null);
+	const playPileRef = useRef<HTMLDivElement | null>(null);
+	const { user } = useAuthStore();
 
-	const onDragCard = () => {
-		if (cardRef.current && playePileRef.current) {
-			playePileRef.current.replaceChildren(cardRef.current);
-		}
-	};
-
-	const onDragStart = (event: React.DragEvent<HTMLDivElement>, cardId: string) => {
-		event.dataTransfer.setData("text/plain", cardId);
-	};
-
-	const onDropOnPile = (event: React.DragEvent<HTMLDivElement>) => {
-		event.preventDefault();
-		const cardId = event.dataTransfer.getData("text/plain");
-		if (!cardId) return;
-		setCards(prevCards => prevCards.map(card =>
-			card.id === cardId ? { ...card, location_type: 'play_pile' } : card
-		));
-	};
-
-	const onDragOverPile = (event: React.DragEvent<HTMLDivElement>) => {
-		event.preventDefault();
-	};
-
-	const { connectionStatus } = useGameWebSocket({
-		gameId: gameId || '',
+	const { connectionStatus, playCard, drawCard } = useGameWebSocket({
+		gameId,
 		onGameUpdate: (update) => {
-			console.log('Game updated:', update);
-			setGameState(prevState => ({
-				...prevState,
-				...update
-			}));
+			console.log("Game update received:", update);
+			if (update.card_played) {
+				setCards(prevCards => prevCards.map(card =>
+					card.id === update.card_played!.id
+						? { ...card, location_type: 'play_pile', player_id: undefined }
+						: card
+				));
+			}
+			if (update.card_drawn) {
+				setCards(prevCards => prevCards.map(card =>
+					card.id === update.card_drawn!.id
+						? { ...card, location_type: 'hand', player_id: gameState?.current_player_id }
+						: card
+				));
+			}
+			if (update.current_player_id) {
+				setGameState(prev => prev ? { ...prev, current_player_id: update.current_player_id } : prev);
+			}
 		},
 	});
 
+	/** DRAG & DROP LOGIC */
+	const onDragStart = (event: React.DragEvent<HTMLDivElement>, cardId: string) => {
+		console.log("Dragging card:", cardId);
+		event.dataTransfer.setData("text/plain", cardId);
+		event.dataTransfer.effectAllowed = "move";
+	};
+
+	const handleDragOverPile = (event: React.DragEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		event.dataTransfer.dropEffect = "move";
+	};
+
+	const handleDropOnPile = (event: React.DragEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		const cardId = event.dataTransfer.getData("text/plain");
+
+		const droppedCard = cards.find(card => card.id === cardId);
+		if (!droppedCard || !gameState?.current_player_id) return;
+
+		const nextPlayer = getNextPlayer(gameState.current_player_id); // Add logic to get the next player ID
+
+		setGameState(prev => prev ? { ...prev, current_player_id: nextPlayer } : prev);
+
+		playCard({ cardId: droppedCard.id, gameId: gameId || '', playerId: gameState.current_player_id });
+	};
+
+	const getNextPlayer = (currentPlayerId: string) => {
+		const currentIndex = gameState?.players.findIndex(player => player.id === currentPlayerId);
+		if (currentIndex === undefined || currentIndex === -1) return currentPlayerId;
+
+		const nextPlayerIndex = (currentIndex + 1) % gameState?.players.length!;
+		return gameState?.players[nextPlayerIndex].id;
+	};
+
+	/** LOADING GAME DATA */
+	// Broadcast game update
 	useEffect(() => {
 		const loadInitialGame = async () => {
 			if (!gameId) {
@@ -96,20 +125,12 @@ export default function Show() {
 			if (isInitialLoadComplete.current) return;
 
 			try {
-				const abortController = new AbortController();
-				const response = await instance.get(`/cards/${gameId}/get`, {
-					signal: abortController.signal
-				});
-
+				const response = await instance.get(`/cards/${gameId}/get`);
 				if (response.status === 200) {
 					isInitialLoadComplete.current = true;
 					setCards(response.data.cards);
 					setGameState(response.data.game_state);
 				}
-
-				return () => {
-					abortController.abort();
-				};
 			} catch (error) {
 				setError('Failed to load game data');
 				console.error('Error loading game:', error);
@@ -121,16 +142,24 @@ export default function Show() {
 		loadInitialGame();
 	}, [gameId]);
 
-	const renderCard = (card: CardType | null, isHidden: boolean = false) => {
+
+	const renderCard = (card: CardType | null, isHidden: boolean = false, position: string = 'bottom') => {
+		const rotationClasses = {
+			'left': '-rotate-90',
+			'right': 'rotate-90',
+			'top': 'rotate-180',
+			'bottom': ''
+		}[position] || '';
+
 		if (!card) {
 			return (
-				<div className="w-[60px] h-[84px] md:w-[70px] md:h-[98px] bg-white/5 rounded-lg border border-white/10 flex items-center justify-center" />
+				<div className={`w-[60px] h-[84px] md:w-[70px] md:h-[98px] bg-white/5 rounded-lg border border-white/10 flex items-center justify-center ${rotationClasses}`} />
 			);
 		}
 
 		if (isHidden) {
 			return (
-				<div className="w-[60px] h-[84px] md:w-[70px] md:h-[98px] bg-gradient-to-br from-white/10 to-white/5 rounded-lg border border-white/20 transform transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-black/20">
+				<div className={`w-[60px] h-[84px] md:w-[70px] md:h-[98px] bg-gradient-to-br from-white/10 to-white/5 rounded-lg border border-white/20 transform transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-black/20 ${rotationClasses}`}>
 					<div className="w-full h-full rounded-lg bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMzAgMzBtLTI4IDBhMjggMjggMCAxIDAgNTYgMCAyOCAyOCAwIDEgMC01NiAwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+')] bg-center" />
 				</div>
 			);
@@ -138,10 +167,9 @@ export default function Show() {
 
 		return (
 			<div
-				className="relative w-[60px] h-[84px] md:w-[70px] md:h-[98px] group"
+				className={`relative w-[60px] h-[84px] md:w-[70px] md:h-[98px] group ${rotationClasses}`}
 				draggable={!isHidden}
-				onDragStart={(event) => onDragStart(event, card.id)}
-				onDrag={onDragCard}
+				onDragStart={(e) => onDragStart(e, card.id)}
 			>
 				<img
 					src={card.image_url}
@@ -152,40 +180,28 @@ export default function Show() {
 		);
 	};
 
-	const getPlayerCards = (playerId: string) => ({
-		hidden: cards.filter(card => card.player_id === playerId && card.status === 'hidden'),
-		faceUp: cards.filter(card => card.player_id === playerId && card.status === 'faceup'),
-		hand: cards.filter(card => card.player_id === playerId && card.status === 'hand')
-	});
-
-	const getPlayerPosition = (_index: number, totalPlayers: number, currentPlayerId: string, playerId: string) => {
-		if (playerId === currentPlayerId) return 'bottom';
-
-		if (totalPlayers === 3) {
-			const otherPlayerIndex = gameState?.players
-				.filter(p => p.id !== currentPlayerId)
-				.findIndex(p => p.id === playerId) ?? 0;
-			return otherPlayerIndex === 0 ? 'top-left' : 'top-right';
-		}
-
-		if (totalPlayers === 4) {
-			const otherPlayerIndex = gameState?.players
-				.filter(p => p.id !== currentPlayerId)
-				.findIndex(p => p.id === playerId) ?? 0;
-			return otherPlayerIndex === 0 ? 'left' : otherPlayerIndex === 1 ? 'top' : 'right';
-		}
-
-		return 'top';
-	};
-
 	const renderPlayerSection = (player: Player, position: string) => {
 		const playerCards = getPlayerCards(player.id);
-		const isCurrentPlayer = gameState?.current_player_id === player.id;
+		const isCurrentPlayer = gameState?.current_player_id === player.id && player.user_id === user.id;
 		const isOwner = gameState?.lobby.owner_name === player.name;
 
+		const positionClasses = {
+			'bottom': 'max-w-[360px]',
+			'top': 'max-w-[300px]',
+			'left': 'max-w-[300px]',
+			'right': 'max-w-[300px]'
+		}[position];
+
+		const cardLayoutClasses = {
+			'bottom': 'grid grid-cols-3 gap-2',
+			'top': 'flex gap-2',
+			'left': 'grid gap-2',
+			'right': 'grid gap-2'
+		}[position];
+
 		return (
-			<div className={`relative bg-black/40 backdrop-blur-sm rounded-xl p-3 md:p-4 max-w-[360px] mx-auto
-				${isCurrentPlayer ? 'ring-2 ring-white/30 shadow-lg shadow-black/30' : position}`}>
+			<div className={`relative bg-black/40 backdrop-blur-sm rounded-xl p-3 md:p-4 ${positionClasses}
+        ${isCurrentPlayer ? 'ring-2 ring-white/30 shadow-lg shadow-black/30' : ''}`}>
 				<div className="flex items-center gap-2 mb-3">
 					<div className="flex items-center gap-2">
 						<div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-white/20 to-white/10 flex items-center justify-center">
@@ -200,28 +216,28 @@ export default function Show() {
 					{isOwner && <Crown className="w-4 h-4 md:w-5 md:h-5 text-yellow-400/80" />}
 					{isCurrentPlayer && (
 						<span className="text-[10px] md:text-xs px-2 py-1 rounded-full bg-white/10 text-white/90 font-medium animate-pulse">
-							Current Turn
+							Current Player
 						</span>
 					)}
 				</div>
 
 				<div className="grid place-items-center gap-4">
 					<div className="relative m-2">
-						<div className="flex gap-2 pb-1">
-							{playerCards.hidden.map(card => renderCard(card, true))}
+						<div className={cardLayoutClasses}>
+							{playerCards.hidden.map(card => renderCard(card, true, position))}
 						</div>
-						<div className="flex absolute bottom-[-12px] gap-2 pb-1">
-							{playerCards.faceUp.map(card => renderCard(card))}
+						<div className={`absolute bottom-[-12px] ${cardLayoutClasses}`}>
+							{playerCards.faceUp.map(card => renderCard(card, false, position))}
 						</div>
 					</div>
 
-					{isCurrentPlayer && (
+					{position === 'bottom' && (
 						<div className="w-full">
 							<h3 className="text-white/70 text-xs md:text-sm font-medium mb-3">Your Hand</h3>
-							<div className="flex gap-2 pb-1 justify-center">
+							<div className={cardLayoutClasses}>
 								{playerCards.hand.map(card => (
 									<div key={card.id} className="transform hover:-translate-y-2 transition-all duration-200 cursor-pointer">
-										{renderCard(card)}
+										{renderCard(card, false, position)}
 									</div>
 								))}
 							</div>
@@ -231,6 +247,12 @@ export default function Show() {
 			</div>
 		);
 	};
+
+	const getPlayerCards = (playerId: string) => ({
+		hidden: cards.filter(card => card.player_id === playerId && card.status === 'hidden'),
+		faceUp: cards.filter(card => card.player_id === playerId && card.status === 'faceup'),
+		hand: cards.filter(card => card.player_id === playerId && card.status === 'hand')
+	});
 
 	if (isLoading) {
 		return (
@@ -256,14 +278,73 @@ export default function Show() {
 	const deckCards = cards.filter(card => card.location_type === 'deck');
 	const playPileCards = cards.filter(card => card.location_type === 'play_pile');
 
+	const orderedPlayers = [...gameState.players];
+	const playerCount = orderedPlayers.length;
+
+	const currentPlayerIndex = orderedPlayers.findIndex(p => p.id === gameState.current_player_id);
+
+	if (currentPlayerIndex > 0) {
+		const currentPlayer = orderedPlayers.splice(currentPlayerIndex, 1)[0];
+		orderedPlayers.unshift(currentPlayer);
+	}
+
+	const getPlayerPositions = () => {
+		switch (playerCount) {
+			case 2:
+				return [
+					{ player: orderedPlayers[0], position: 'bottom' },
+					{ player: orderedPlayers[1], position: 'top' }
+				];
+			case 3:
+				return [
+					{ player: orderedPlayers[0], position: 'bottom' },
+					{ player: orderedPlayers[1], position: 'left' },
+					{ player: orderedPlayers[2], position: 'right' }
+				];
+			case 4:
+				return [
+					{ player: orderedPlayers[0], position: 'bottom' },
+					{ player: orderedPlayers[1], position: 'left' },
+					{ player: orderedPlayers[2], position: 'top' },
+					{ player: orderedPlayers[3], position: 'right' }
+				];
+			default:
+				return [{ player: orderedPlayers[0], position: 'bottom' }];
+		}
+	};
+
+	const renderDeckSection = () => (
+		<div className="text-center">
+			<h3 className="text-white/70 text-xs md:text-sm font-medium mb-2">Deck</h3>
+			<div className="relative">
+				{renderCard(deckCards[deckCards.length - 1], true)}
+				{deckCards.length > 0 && (
+					<>
+						<span className="absolute -top-1 -right-1 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+							{deckCards.length}
+						</span>
+						<Button
+							disabled={gameState?.current_player_id !== user?.id}
+							className="mt-2 bg-white/10 hover:bg-white/20 text-white text-xs"
+						>
+							Draw Card
+						</Button>
+					</>
+				)}
+			</div>
+		</div>
+	);
+
+	const playerPositions = getPlayerPositions();
+
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
 			<div className="min-h-screen">
-				<div className="max-w-6xl mx-auto h-screen p-3 md:p-4 flex flex-col">
+				<div className="max-w-7xl mx-auto h-screen p-3 md:p-4 flex flex-col">
 					<div className="relative mb-4">
 						<div className="absolute right-0 top-0 flex items-center gap-2">
 							<div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs md:text-sm
-								${connectionStatus === WebSocket.OPEN
+                ${connectionStatus === WebSocket.OPEN
 									? 'bg-white/10 text-white/90'
 									: 'bg-white/5 text-white/60'}`}>
 								<Signal className="w-3.5 h-3.5" />
@@ -271,33 +352,23 @@ export default function Show() {
 							</div>
 							<div className="bg-white/10 text-white/90 px-2.5 py-1 rounded-full text-xs md:text-sm flex items-center gap-1.5">
 								<Users className="w-3.5 h-3.5" />
-								<span>{gameState.players.length} Players</span>
+								<span>{playerCount} Players</span>
 							</div>
 						</div>
 					</div>
 
-					<div className="flex-1 grid grid-cols-3 gap-4 relative">
-						<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<div className="flex-1 relative">
+						<div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
 							<div className="flex gap-8 md:gap-12 pointer-events-auto">
-								<div className="text-center">
-									<h3 className="text-white/70 text-xs md:text-sm font-medium mb-2">Deck</h3>
-									<div className="relative">
-										{renderCard(deckCards[deckCards.length - 1], true)}
-										{deckCards.length > 0 && (
-											<span className="absolute -top-1 -right-1 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
-												{deckCards.length}
-											</span>
-										)}
-									</div>
-								</div>
+								{renderDeckSection()}
 
 								<div className="text-center">
 									<h3 className="text-white/70 text-xs md:text-sm font-medium mb-2">Play Pile</h3>
 									<div
 										className="relative"
-										ref={playePileRef}
-										onDrop={onDropOnPile}
-										onDragOver={onDragOverPile}
+										ref={playPileRef}
+										onDrop={handleDropOnPile}
+										onDragOver={handleDragOverPile}
 									>
 										{renderCard(playPileCards[playPileCards.length - 1])}
 										{playPileCards.length > 0 && (
@@ -310,32 +381,30 @@ export default function Show() {
 							</div>
 						</div>
 
-						{gameState.players.map((player, index) => {
-							const position = getPlayerPosition(
-								index,
-								gameState.players.length,
-								gameState.current_player_id || '',
-								player.id
-							);
+						<div className="absolute inset-0">
+							<div className="h-full grid grid-rows-3 grid-cols-3 gap-4">
+								{playerPositions.map(({ player, position }) => {
+									const gridPositionClasses = {
+										'bottom': 'col-start-2 col-span-1 row-start-3 self-end',
+										'top': 'col-start-2 col-span-1 row-start-1',
+										'left': 'col-start-1 col-span-1 row-start-2 flex items-center',
+										'right': 'col-start-3 col-span-1 row-start-2 flex items-center justify-end'
+									}[position];
 
-							const positionStyles = {
-								'bottom': 'col-start-1 col-span-3 self-end',
-								'top': 'col-start-1 col-span-3 self-start',
-								'left': 'col-start-1 self-center',
-								'right': 'col-start-3 self-center',
-								'top-left': 'col-start-1 self-start',
-								'top-right': 'col-start-3 self-start'
-							}[position];
-
-							return (
-								<div key={player.id} className={positionStyles}>
-									{renderPlayerSection(player, position)}
-								</div>
-							);
-						})}
+									return (
+										<div key={player.id} className={gridPositionClasses}>
+											<div className={position === 'bottom' || position === 'top' ? 'flex justify-center' : 'w-full'}>
+												{renderPlayerSection(player, position)}
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 	);
 }
+

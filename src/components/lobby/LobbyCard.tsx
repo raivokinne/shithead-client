@@ -41,7 +41,7 @@ export function LobbyCard({ lobby, onJoin }: LobbyCardProps) {
 						joinParams.push('invite_only', '', 'invite_only');
 						break;
 					default:
-						break;
+						joinParams.push('', '','')
 				}
 			}
 			await onJoin(...joinParams);
