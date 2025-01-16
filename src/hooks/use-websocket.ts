@@ -41,7 +41,7 @@ export const useGameWebSocket = ({
   const { toast } = useToast();
   const navigate = useNavigate();
   const wsRef = useRef<WebSocket | null>(null);
-  const [data, setData] = useState<GameData>();
+  const [_data, setData] = useState<GameData>();
   const [connectionStatus, setConnectionStatus] = useState<WebSocket['readyState']>(
     WebSocket.CONNECTING
   );
@@ -176,11 +176,45 @@ export const useGameWebSocket = ({
     });
   }, [sendMessage]);
 
+  	const startGame = useCallback(() => {
+		if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+			toast({
+				title: "Error",
+				description: "Not connected to game server",
+				variant: "destructive",
+			});
+			return;
+		}
+
+		wsRef.current.send(JSON.stringify({
+			type: 'start_game',
+			payload: { gameId }
+		}));
+	}, [gameId, toast]);
+
+	const readyUp = useCallback((lobbyId: string) => {
+		if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+			toast({
+				title: "Error",
+				description: "Not connected to game server",
+				variant: "destructive",
+			});
+			return;
+		}
+		wsRef.current.send(JSON.stringify({
+			type: 'lobby_ready',
+			payload: { lobbyId }
+		}));
+	}, [])
+
+
   return {
     connectionStatus,
     playCard,
     drawCard,
     wsRef,
+	 startGame,
+	 readyUp
   };
 };
 

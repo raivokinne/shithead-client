@@ -54,7 +54,7 @@ export default function Show() {
 	const playPileRef = useRef<HTMLDivElement | null>(null);
 	const { user } = useAuthStore();
 
-	const { connectionStatus, playCard, drawCard } = useGameWebSocket({
+	const { connectionStatus, playCard } = useGameWebSocket({
 		gameId,
 		onGameUpdate: (update) => {
 			console.log("Game update received:", update);

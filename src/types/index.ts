@@ -105,7 +105,7 @@ export interface Lobby {
 	created_at: string;
 	updated_at: string;
 	owner: {
-		id: number;
+		id: string;
 		name: string;
 	};
 	invitations: Invitation[];

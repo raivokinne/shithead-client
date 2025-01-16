@@ -60,7 +60,7 @@ export function useLobby(id: string | undefined) {
 	}, [id, isJoining, fetchLobbyDetails, gameId, startGame]);
 
 	const updateParticipantStatus = useCallback(
-		(participantId: number, status: "ready" | "not_ready") => {
+		(participantId: string, status: "ready" | "not_ready") => {
 			setLobby((currentLobby) => {
 				if (!currentLobby) return null;
 				return {

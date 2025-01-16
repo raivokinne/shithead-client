@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface ParticipantListProps {
 	participants: Participant[];
-	owner: { id: number; name: string };
+	owner: { id: string; name: string };
 }
 
 export function ParticipantList({
